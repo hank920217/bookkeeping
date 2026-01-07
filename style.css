@@ -68,5 +68,7 @@ body {
 button { 
   margin-top: 5px; 
   padding: 5px 10px; 
+  border-radius: 9px;
   cursor: pointer; 
+  box-shadow: 2px 2px  gray;
 }
