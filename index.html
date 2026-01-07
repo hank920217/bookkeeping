@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>記帳小幫手</title>
+  <link rel="icon" type="image/png" href="budget.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>記帳小幫手</h1>
+
+  <!-- 今日消費輸入 -->
+  <div class="form-container">
+    <div class="form-left">
+      項目：
+      <select id="itemSelect"></select>
+      <input id="itemInput" placeholder="新項目">
+      <br><br>
+      金額：<input type="number" id="amountInput">
+      <br><br>
+      顏色：<input type="color" id="colorInput" value="#f0f0f0">
+      <br><br>
+      日期：<input type="date" id="dateInput">
+      <br><br>
+      <button onclick="addExpense()">新增</button>
+      <button onclick="resetData()">Reset</button>
+    </div>
+
+    <!-- 固定顏色選擇區 -->
+    <div class="form-right">
+      <h3>常用顏色</h3>
+      <div id="colorPalette"></div>
+    </div>
+  </div>
+
+  <!-- 清單顯示 -->
+  <div id="list"></div>
+
+  <script>
+    let expenses = JSON.parse(localStorage.getItem("expenses")) || {};
+    let items = JSON.parse(localStorage.getItem("items")) || [];
+    let colors = JSON.parse(localStorage.getItem("colors")) || [];
+
+    // 預設日期為今日
+    window.onload = function() {
+      let today = new Date().toISOString().split("T")[0];
+      document.getElementById("dateInput").value = today;
+      updateSelect();
+      render();
+      renderColors();
+    };
+
+    function updateSelect() {
+      let sel = document.getElementById("itemSelect");
+      sel.innerHTML = "<option value=''>選擇項目</option>";
+      items.forEach(i => sel.innerHTML += `<option>${i}</option>`);
+    }
+
+    function addExpense() {
+      let item = document.getElementById("itemSelect").value || document.getElementById("itemInput").value;
+      let amt = +document.getElementById("amountInput").value;
+      let color = document.getElementById("colorInput").value;
+      let date = document.getElementById("dateInput").value;
+
+      if (!item || !amt || !date) return alert("請輸入完整資料");
+
+      // 記憶項目
+      if (!items.includes(item)) {
+        items.push(item);
+        localStorage.setItem("items", JSON.stringify(items));
+        updateSelect();
+      }
+
+      // 記憶顏色
+      if (!colors.includes(color)) {
+        colors.push(color);
+        localStorage.setItem("colors", JSON.stringify(colors));
+        renderColors();
+      }
+
+      let d = new Date(date);
+      let month = d.getFullYear() + "-" + (d.getMonth()+1);
+      let day = date;
+
+      expenses[month] = expenses[month] || {};
+      expenses[month][day] = expenses[month][day] || [];
+      expenses[month][day].push({item, amt, color});
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+
+      render();
+    }
+
+    function deleteExpense(month, day, index) {
+      expenses[month][day].splice(index, 1);
+      if (expenses[month][day].length === 0) delete expenses[month][day];
+      if (Object.keys(expenses[month]).length === 0) delete expenses[month];
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+      
+      render();
+    }
+
+    function render() {
+      let list = document.getElementById("list");
+      list.innerHTML = "";
+      for (let m in expenses) {
+        let monthTotal = 0;
+        let mDiv = document.createElement("div");
+        mDiv.className = "month";
+        mDiv.innerHTML = `<h2>${m}</h2>`;
+        for (let d in expenses[m]) {
+          let dayTotal = 0;
+          let dDiv = document.createElement("div");
+          dDiv.className = "day";
+          dDiv.innerHTML = `<h3>${d}</h3>`;
+          expenses[m][d].forEach((r, i) => {
+            dDiv.innerHTML += `
+              <div class="item" style="background:${r.color}">
+                ${r.item} - $${r.amt}
+                <button class="deleteBtn" onclick="deleteExpense('${m}','${d}',${i})">刪除</button>
+              </div>`;
+            dayTotal += r.amt;
+          });
+          dDiv.innerHTML += `<div class="total">每日花費: $${dayTotal}</div>`;
+          mDiv.appendChild(dDiv);
+          monthTotal += dayTotal;
+        }
+        mDiv.innerHTML += `<div class="total">每月花費: $${monthTotal}</div>`;
+        list.appendChild(mDiv);
+      }
+    }
+
+    // 渲染顏色選擇區
+    function renderColors() {
+      let palette = document.getElementById("colorPalette");
+      palette.innerHTML = "";
+      colors.forEach(c => {
+        let btn = document.createElement("button");
+        btn.className = "colorBtn";
+        btn.style.background = c;
+        btn.onclick = () => document.getElementById("colorInput").value = c;
+        palette.appendChild(btn);
+      });
+    }
+    function resetData() { 
+      if (confirm("確定要清除所有紀錄嗎？")) { 
+        localStorage.removeItem("expenses"); 
+        localStorage.removeItem("items"); 
+        localStorage.removeItem("colors"); 
+        expenses = {}; items = []; colors = []; 
+        updateSelect(); 
+        render(); 
+        renderColors(); 
+        alert("所有紀錄已清除！");}
+      }
+  </script>
+</body>
+</html>
