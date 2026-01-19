@@ -11,6 +11,7 @@
 
   <!-- 今日消費輸入 -->
   <div class="form-container">
+    
     <div class="form-left">
       項目：
       <select id="itemSelect"></select>
@@ -25,11 +26,13 @@
       <button onclick="addExpense()">新增</button>
       <button onclick="resetData()">重製</button>
     </div>
-
     <!-- 固定顏色選擇區 -->
     <div class="form-right">
       <h3>常用顏色</h3>
       <div id="colorPalette"></div>
+    </div>
+    <div class="search" style="margin: 20px 0;">
+      搜尋項目：<input type="text" id="searchInput" placeholder="輸入關鍵字" oninput="render()">
     </div>
   </div>
 
@@ -95,39 +98,60 @@
       if (expenses[month][day].length === 0) delete expenses[month][day];
       if (Object.keys(expenses[month]).length === 0) delete expenses[month];
       localStorage.setItem("expenses", JSON.stringify(expenses));
-      
       render();
     }
 
     function render() {
-      let list = document.getElementById("list");
-      list.innerHTML = "";
-      for (let m in expenses) {
-        let monthTotal = 0;
-        let mDiv = document.createElement("div");
-        mDiv.className = "month";
-        mDiv.innerHTML = `<h2>${m}</h2>`;
-        for (let d in expenses[m]) {
-          let dayTotal = 0;
-          let dDiv = document.createElement("div");
-          dDiv.className = "day";
-          dDiv.innerHTML = `<h3>${d}</h3>`;
-          expenses[m][d].forEach((r, i) => {
-            dDiv.innerHTML += `
-              <div class="item" style="background:${r.color}">
-                ${r.item} - $${r.amt}
-                <button class="deleteBtn" onclick="deleteExpense('${m}','${d}',${i})">刪除</button>
-              </div>`;
-            dayTotal += r.amt;
-          });
-          dDiv.innerHTML += `<div class="total">每日花費: $${dayTotal}</div>`;
-          mDiv.appendChild(dDiv);
-          monthTotal += dayTotal;
+  let list = document.getElementById("list");
+  // 修正點 1: 改成 toLowerCase()，並確保 searchInput 存在
+  let searchEl = document.getElementById("searchInput");
+  let keyword = searchEl ? searchEl.value.toLowerCase() : ""; 
+  
+  list.innerHTML = "";
+  
+  for (let m in expenses) {
+    let monthTotal = 0;
+    let hasVisibleItemInMonth = false;
+    let mDiv = document.createElement("div");
+    mDiv.className = "month";
+    mDiv.innerHTML = `<h2>${m}</h2>`;
+
+    for (let d in expenses[m]) {
+      let dayTotal = 0;
+      let hasVisibleItemInDay = false;
+      
+      // 修正點 2: 這裡先用一個空的 HTML 字串存這天的項目，最後再一次放進 dDiv
+      let dayContent = ""; 
+
+      expenses[m][d].forEach((r, i) => {
+        if (r.item.toLowerCase().includes(keyword)) {
+          dayContent += `
+            <div class="item" style="background:${r.color}">
+              ${r.item} - $${r.amt}
+              <button class="deleteBtn" onclick="deleteExpense('${m}','${d}',${i})">刪除</button>
+            </div>`;
+          dayTotal += r.amt;
+          hasVisibleItemInDay = true;
+          hasVisibleItemInMonth = true;
         }
-        mDiv.innerHTML += `<div class="total">每月花費: $${monthTotal}</div>`;
-        list.appendChild(mDiv);
+      });
+      
+      if (hasVisibleItemInDay) {
+        let dDiv = document.createElement("div");
+        dDiv.className = "day";
+        // 把這天的標題、剛才存的項目內容、以及總計結合起來
+        dDiv.innerHTML = `<h3>${d}</h3>` + dayContent + `<div class="total">每日花費: $${dayTotal}</div>`;
+        mDiv.appendChild(dDiv);
+        monthTotal += dayTotal;
       }
     }
+
+    if (hasVisibleItemInMonth) {
+      mDiv.innerHTML += `<div class="total">每月花費: $${monthTotal}</div>`;
+      list.appendChild(mDiv);
+    }
+  }
+}
 
     // 渲染顏色選擇區
     function renderColors() {
@@ -154,5 +178,4 @@
       }
   </script>
 </body>
-
 </html>
