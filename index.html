@@ -14,7 +14,7 @@
     
     <div class="form-left">
       項目：
-      <select id="itemSelect"></select>
+      <select id="itemSelect" onchange="handleSelectChange()"></select>
       <input id="itemInput" placeholder="新項目">
       <br><br>
       金額：<input type="number" id="amountInput">
@@ -52,7 +52,15 @@
       render();
       renderColors();
     };
-
+    function handleSelectChange() {
+      const select = document.getElementById("itemSelect");
+      const input = document.getElementById("itemInput");
+      
+      // 如果選的不是第一個預設值（"選擇項目"），就把值填入輸入框
+      if (select.value !== "") {
+        input.value = select.value;
+      }
+    }
     function updateSelect() {
       let sel = document.getElementById("itemSelect");
       sel.innerHTML = "<option value=''>選擇項目</option>";
@@ -60,7 +68,7 @@
     }
 
     function addExpense() {
-      let item = document.getElementById("itemSelect").value || document.getElementById("itemInput").value;
+      let item = document.getElementById("itemInput").value;
       let amt = +document.getElementById("amountInput").value;
       let color = document.getElementById("colorInput").value;
       let date = document.getElementById("dateInput").value;
@@ -91,6 +99,8 @@
       localStorage.setItem("expenses", JSON.stringify(expenses));
 
       render();
+      document.getElementById("itemInput").value = "";
+      document.getElementById("amountInput").value = "";
     }
 
     function deleteExpense(month, day, index) {
